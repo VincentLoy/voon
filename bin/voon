@@ -3,21 +3,25 @@
 #
 # (c) 2016 Vincent Loy
 import argparse
+import socketserver
+import threading
 import webbrowser
+from http.server import SimpleHTTPRequestHandler
 
 import codecs
 import sys
 import bottlenose
-from pprint import PrettyPrinter
-
-import lxml
+from urllib.request import pathname2url  # Python 3.x
 import os
-from lxml.objectify import StringElement
-from os import getenv
 import json
+from multiprocessing import Process
+from os import getenv
 
+from lxml.objectify import StringElement
 from amazon.api import AmazonAPI
-from slugify import slugify, Slugify
+from slugify import Slugify
+
+PORT = 8898
 
 VALID_SEARCH_INDEX = [
     'All', 'Apparel', 'Appliances', 'ArtsAndCrafts', 'Automotive', 'Baby', 'Beauty', 'Blended',
@@ -45,14 +49,15 @@ class Voon(object):
         self.args = args
         self.assoc_tag = getenv('AMAZON_ASSOC_TAG') if getenv('AMAZON_ASSOC_TAG') else ''
 
+        self.data = []
+
+    def init_amazon_api(self):
         self.amazon = AmazonAPI(
             getenv('AMAZON_ACCESS_KEY'),
             getenv('AMAZON_SECRET_KEY'),
             getenv('AMAZON_ASSOC_TAG'),
             region=self.args['region'],
         )
-
-        self.data = []
 
     def create_file(self):
         custom_slugify = Slugify(to_lower=True)
@@ -78,10 +83,9 @@ class Voon(object):
             'url': str(image['URL']),
         }
 
-    # def inspect(self):
-    #     webbrowser.open_new_tab(os.path.abspath('webview/index.html'))
-
     def catch(self):
+        self.init_amazon_api()
+
         if self.args['limit']:
             result = self.amazon.search_n(
                 self.args['limit'],
@@ -132,6 +136,16 @@ class VoonException(Exception):
 def parse_cli():
     p = argparse.ArgumentParser(description='Voon is a tool to create Amazon products JSON files')
     s = p.add_subparsers(help='Action', dest='action')
+
+    # inspect
+    arg_inspect = s.add_parser('inspect', help='Inpect a given file in a webview to sort it more easly')
+
+    arg_inspect.add_argument(
+        'file',
+        type=str,
+        nargs='?',
+        help='The absolute path of the file that you want to inspect'
+    )
 
     # catch
     arg_catch = s.add_parser('catch', help='Gather the requested products')
@@ -192,14 +206,24 @@ def parse_cli():
     return r
 
 
+class VoonServerThread(threading.Thread):
+
+    def __init__(self, ip, port):
+        super().__init__()
+        self.ip = ip
+        self.port = port
+        self.httpd = None
+
+    def run(self):
+        os.chdir(os.path.abspath('{}/webview'.format(os.path.dirname(__file__))))
+        server_address = (self.ip, self.port)
+        handler = SimpleHTTPRequestHandler
+        self.httpd = socketserver.TCPServer(server_address, handler)
+        print(self.httpd.server_address)
+        self.httpd.serve_forever()
+
+
 def do_catch(**parsed):
-    voon = Voon(parsed)
-    voon.catch()
-
-
-def main():
-    parsed = vars(parse_cli())
-    action = parsed.pop('action')
     region_options = bottlenose.api.SERVICE_DOMAINS.keys()
 
     if parsed['category'] not in VALID_SEARCH_INDEX:
@@ -215,9 +239,41 @@ def main():
     if parsed['query'] is None:
         raise VoonException('Argument query is required')
 
+    voon = Voon(parsed)
+    voon.catch()
+
+
+def do_inspect(**parsed):
+    try:
+        parsed['srv'].start()
+        print('Server running at http://{}:{}'.format(parsed['ip'], parsed['port']))
+        webbrowser.open_new_tab('http://{}:{}?data={}'.format(
+            parsed['ip'],
+            parsed['port'],
+            parsed['file']
+        ))
+
+    except KeyboardInterrupt:
+        parsed['srv'].httpd.server_close()
+        print('Closing webserver...')
+
+
+def main():
+    parsed = vars(parse_cli())
+    action = parsed.pop('action')
+
+
+    if action == 'inspect':
+        parsed['ip'] = '127.0.0.1'
+        parsed['port'] = 8001
+        parsed['srv'] = VoonServerThread(parsed['ip'], parsed['port'])
+
     try:
         globals()['do_{}'.format(action)](**parsed)
     except KeyboardInterrupt:
+        if action == 'inspect':
+            parsed['srv'].httpd.server_close()
+
         print('see you soon')
         sys.exit(1)
 
