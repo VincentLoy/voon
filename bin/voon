@@ -1,0 +1,226 @@
+#!/usr/bin/env python
+# vim: fileencoding=utf-8 tw=100 expandtab ts=4 sw=4 :
+#
+# (c) 2016 Vincent Loy
+import argparse
+import webbrowser
+
+import codecs
+import sys
+import bottlenose
+from pprint import PrettyPrinter
+
+import lxml
+import os
+from lxml.objectify import StringElement
+from os import getenv
+import json
+
+from amazon.api import AmazonAPI
+from slugify import slugify, Slugify
+
+VALID_SEARCH_INDEX = [
+    'All', 'Apparel', 'Appliances', 'ArtsAndCrafts', 'Automotive', 'Baby', 'Beauty', 'Blended',
+    'Books', 'Classical', 'Collectibles', 'DVD', 'DigitalMusic', 'Electronics', 'GiftCards',
+    'GourmetFood', 'Grocery', 'HealthPersonalCare', 'HomeGarden', 'Industrial', 'Jewelry',
+    'KindleStore', 'Kitchen', 'LawnAndGarden', 'Marketplace', 'MP3Downloads', 'Magazines',
+    'Miscellaneous', 'Music', 'MusicTracks', 'MusicalInstruments', 'MobileApps', 'OfficeProducts',
+    'OutdoorLiving', 'PCHardware', 'PetSupplies', 'Photo', 'Shoes', 'Software', 'SportingGoods',
+    'Tools', 'Toys', 'UnboxVideo', 'VHS', 'Video', 'VideoGames', 'Watches', 'Wireless',
+    'WirelessAccessories',
+]
+
+PRODUCT_PROPERTIES = [
+    'asin', 'author', 'authors', 'binding', 'brand', 'color', 'creators', 'ean',
+    'edition', 'editorial_review', 'editorial_reviews', 'eisbn', 'features', 'isbn', 'label',
+    'large_image_url', 'list_price', 'manufacturer', 'medium_image_url', 'model', 'mpn', 'offer_url',
+    'pages', 'parent_asin', 'part_number', 'price_and_currency', 'publication_date', 'publisher',
+    'region', 'reviews', 'sales_rank', 'sku', 'small_image_url', 'tiny_image_url',
+    'title', 'upc',
+]
+
+
+class Voon(object):
+    def __init__(self, args):
+        self.args = args
+        self.assoc_tag = getenv('AMAZON_ASSOC_TAG') if getenv('AMAZON_ASSOC_TAG') else ''
+
+        self.amazon = AmazonAPI(
+            getenv('AMAZON_ACCESS_KEY'),
+            getenv('AMAZON_SECRET_KEY'),
+            getenv('AMAZON_ASSOC_TAG'),
+            region=self.args['region'],
+        )
+
+        self.data = []
+
+    def create_file(self):
+        custom_slugify = Slugify(to_lower=True)
+        custom_slugify.separator = '_'
+
+        fname = '{}_{}.json'.format(
+            self.args['prefix'].lower(),
+            custom_slugify(self.args['query'])
+        )
+
+        with codecs.open(fname, 'w', encoding='utf8') as f:
+            f.write(json.dumps(
+                self.data,
+                ensure_ascii=False,
+                indent=2,
+                separators=(',', ': ')
+            ))
+
+    def _get_image_properties(self, image):
+        return {
+            'height': int(image['Height']),
+            'width': int(image['Width']),
+            'url': str(image['URL']),
+        }
+
+    # def inspect(self):
+    #     webbrowser.open_new_tab(os.path.abspath('webview/index.html'))
+
+    def catch(self):
+        if self.args['limit']:
+            result = self.amazon.search_n(
+                self.args['limit'],
+                Keywords=self.args['query'],
+                SearchIndex=self.args['category']
+            )
+        else:
+            result = self.amazon.search(Keywords=self.args['query'], SearchIndex=self.args['category'])
+
+        for i, product in enumerate(result):
+            res = {
+                'images': []
+            }
+            for prop in PRODUCT_PROPERTIES:
+                if isinstance(getattr(product, prop), StringElement):
+                    res[prop] = str(getattr(product, prop))
+                else:
+                    res[prop] = getattr(product, prop)
+
+            for img in product.images:
+                res['images'].append({
+                    'small_image':
+                        self._get_image_properties(img.SmallImage) if hasattr(img, 'SmallImage') else None,
+                    'hires_image':
+                        self._get_image_properties(img.HiResImage) if hasattr(img, 'HiResImage') else None,
+                    'tiny_image':
+                        self._get_image_properties(img.TinyImage) if hasattr(img, 'TinyImage') else None,
+                    'large_image':
+                        self._get_image_properties(img.LargeImage) if hasattr(img, 'LargeImage') else None,
+                    'swatch_image':
+                        self._get_image_properties(img.SwatchImage) if hasattr(img, 'SwatchImage') else None,
+                    'medium_image':
+                        self._get_image_properties(img.MediumImage) if hasattr(img, 'MediumImage') else None,
+                    'thumbnail_image':
+                        self._get_image_properties(img.ThumbnailImage) if hasattr(img, 'ThumbnailImage') else None,
+                })
+
+            res['voon_id'] = i + 1
+            self.data.append(res)
+
+        self.create_file()
+
+
+class VoonException(Exception):
+    pass
+
+
+def parse_cli():
+    p = argparse.ArgumentParser(description='Voon is a tool to create Amazon products JSON files')
+    s = p.add_subparsers(help='Action', dest='action')
+
+    # catch
+    arg_catch = s.add_parser('catch', help='Gather the requested products')
+
+    arg_catch.add_argument(
+        '--region',
+        type=str,
+        default='US',
+        nargs='?',
+        help='Amazon region. Can be'
+    )
+
+    arg_catch.add_argument(
+        '--prefix',
+        type=str,
+        default='voon',
+        nargs='?',
+        help='file prefix'
+    )
+
+    arg_catch.add_argument(
+        '--limit',
+        type=int,
+        default=0,
+        nargs='?',
+        help='Limit products in result, if set to 0 there is no limit'
+    )
+
+    arg_catch.add_argument(
+        '--category',
+        type=str,
+        default='All',
+        nargs='?',
+        help='Default is All - Available categories : {}.'.format(', '.join(VALID_SEARCH_INDEX))
+    )
+
+    arg_catch.add_argument(
+        'query',
+        type=str,
+        nargs='?',
+        help='What do you want to search ?'
+    )
+
+    arg_catch.add_argument(
+        'directory',
+        type=str,
+        default='.',
+        nargs='?',
+        help='Directory to create the file (defaults to current directory)'
+    )
+
+    r = p.parse_args()
+
+    if r.action is None:
+        p.print_help()
+        sys.exit(1)
+
+    return r
+
+
+def do_catch(**parsed):
+    voon = Voon(parsed)
+    voon.catch()
+
+
+def main():
+    parsed = vars(parse_cli())
+    action = parsed.pop('action')
+    region_options = bottlenose.api.SERVICE_DOMAINS.keys()
+
+    if parsed['category'] not in VALID_SEARCH_INDEX:
+        raise VoonException('Invalid category, available categories are {}'.format(
+            ', '.join(VALID_SEARCH_INDEX)
+        ))
+
+    if parsed['region'] not in region_options:
+        raise VoonException('Invalid region, available regions are {}'.format(
+            ', '.join(region_options)
+        ))
+
+    if parsed['query'] is None:
+        raise VoonException('Argument query is required')
+
+    try:
+        globals()['do_{}'.format(action)](**parsed)
+    except KeyboardInterrupt:
+        print('see you soon')
+        sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()
