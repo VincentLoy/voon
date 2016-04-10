@@ -218,6 +218,7 @@ class VoonServerThread(threading.Thread):
         os.chdir(os.path.abspath('{}/webview'.format(os.path.dirname(__file__))))
         server_address = (self.ip, self.port)
         handler = SimpleHTTPRequestHandler
+        socketserver.TCPServer.allow_reuse_address = True
         self.httpd = socketserver.TCPServer(server_address, handler)
         print(self.httpd.server_address)
         self.httpd.serve_forever()
@@ -252,10 +253,13 @@ def do_inspect(**parsed):
             parsed['port'],
             parsed['file']
         ))
+        parsed['srv'].join()
+        print('ok')
 
     except KeyboardInterrupt:
-        parsed['srv'].httpd.server_close()
-        print('Closing webserver...')
+        print('\nClosing webserver... please wait.')
+        parsed['srv'].httpd.shutdown()
+        sys.exit(1)
 
 
 def main():
@@ -272,7 +276,7 @@ def main():
         globals()['do_{}'.format(action)](**parsed)
     except KeyboardInterrupt:
         if action == 'inspect':
-            parsed['srv'].httpd.server_close()
+            parsed['srv'].httpd.shutdown()
 
         print('see you soon')
         sys.exit(1)
