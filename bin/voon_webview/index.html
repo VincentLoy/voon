@@ -12,11 +12,50 @@
     <h1 class="text-center">Voon File Inspector</h1>
 </header>
 
+<div class="details_container"
+     v-on:click="unselectItem($event)"
+     v-bind:class="{'show': selectedItem !== null }">
+    <ul class="details_modal">
+        <h3>{{ selectedItem.title }}</h3>
+        <img class="details_main_img" src="{{ selectedImage }}" alt="">
+
+        <ul class="img_list">
+            <li v-for="img in selectedItem.images">
+                <img src="{{ img.thumbnail_image.url }}"
+                     v-bind:class="{'selected': selectedImageIndex === $index }"
+                     v-on:click="selectImage($index)"
+                     alt="">
+            </li>
+        </ul>
+
+        <div class="editorial_review" v-for="editorial_review in selectedItem.editorial_reviews">
+            <div v-html="editorial_review"></div>
+        </div>
+    </div>
+</div>
+
 <div class="container">
     <div v-if="!data" class="alert alert-dismissible alert-warning">
         <h4><strong>data GET parameter not found!</strong></h4>
 
         <p>You must provide a GET parameter called 'data' with voon json file absolute path</p>
+    </div>
+
+    <div class="aside">
+        <ul class="list-group">
+            <li class="list-group-item">
+                <span class="badge">{{ totalItems }}</span>
+                Total items
+            </li>
+            <li class="list-group-item">
+                <span class="badge">{{ totalItemsSlected }}</span>
+                Items selected
+            </li>
+            <li class="list-group-item">
+                <span class="badge">{{ remainingItems }}</span>
+                Remaining items
+            </li>
+        </ul>
     </div>
 
     <div v-if="data" data-test="{{ data }}">
@@ -31,7 +70,7 @@
                         </i>
                     </a>
 
-                    <a href class="item_details_btn">
+                    <a class="item_details_btn" v-on:click="selectItem(item)">
                         See more details <i class="fa fa-eye"></i>
                     </a>
                 </div>
@@ -71,7 +110,7 @@
         </div>
     </div>
 
-    <div class="command_container">
+    <div class="command_container" v-bind:class="{ 'show': dataToRemove.length > 0 }">
         <input type="text" v-model="command" disabled>
     </div>
 </div>

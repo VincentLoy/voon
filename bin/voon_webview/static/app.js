@@ -11,15 +11,15 @@
         app,
         request = new XMLHttpRequest();
 
-    dataGetQuery = function () {
-        var result = (window.location.search.match(new RegExp('[?&]data=([^&]+)')) || null);
+    dataGetQuery = function (q) {
+        var result = (window.location.search.match(new RegExp('[?&]' + q + '=([^&]+)')) || null);
         if (result) {
             return result[1];
         }
         return result;
     };
 
-    request.open('GET', dataGetQuery(), true);
+    request.open('GET', dataGetQuery('data'), true);
     request.onload = function () {
         var data;
         if (request.status >= 200 && request.status < 400) {
@@ -43,11 +43,23 @@
             data: {
                 message: 'salut les potes',
                 data: jsonData,
+                selectedImage: null,
+                selectedImageIndex: 0,
+                selectedItem: null,
                 dataToRemove: []
             },
             computed: {
                 command: function () {
-                    return '$ voon cleanup [json-file-path] --ids ' + this.dataToRemove.join(' ');
+                    return '$ voon cleanup ' + dataGetQuery('file') + ' --ids ' + this.dataToRemove.join(' ');
+                },
+                totalItems: function () {
+                    return this.data.length;
+                },
+                totalItemsSlected: function () {
+                    return this.dataToRemove.length;
+                },
+                remainingItems: function () {
+                    return this.data.length - this.dataToRemove.length;
                 }
             },
             methods: {
@@ -61,6 +73,19 @@
                 },
                 voonIdInside: function (id) {
                     return this.dataToRemove.indexOf(id) > -1;
+                },
+                selectItem: function (item) {
+                    this.selectedItem = item;
+                    this.selectedImage = this.selectedItem.images[0].large_image.url;
+
+                },
+                unselectItem: function (event) {
+                    event.stopPropagation();
+                    this.selectedItem = null;
+                },
+                selectImage: function (index) {
+                    this.selectedImageIndex = index;
+                    this.selectedImage = this.selectedItem.images[index].large_image.url;
                 }
             }
         });

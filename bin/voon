@@ -39,7 +39,7 @@ PRODUCT_PROPERTIES = [
     'asin', 'author', 'authors', 'binding', 'brand', 'color', 'creators', 'ean',
     'edition', 'editorial_review', 'editorial_reviews', 'eisbn', 'features', 'isbn', 'label',
     'large_image_url', 'list_price', 'manufacturer', 'medium_image_url', 'model', 'mpn', 'offer_url',
-    'pages', 'parent_asin', 'part_number', 'price_and_currency', 'publication_date', 'publisher',
+    'pages', 'parent_asin', 'part_number', 'price_and_currency', 'publisher',
     'region', 'reviews', 'sales_rank', 'sku', 'small_image_url', 'tiny_image_url',
     'title', 'upc',
 ]
@@ -247,13 +247,12 @@ def do_cleanup(**parsed):
 
     for item in items:
         if item['voon_id'] in parsed['ids']:
+            print('remove : {}'.format(item['title']))
             items.remove(item)
 
     with codecs.open(parsed['file'], 'w') as f:
         f.write(json.dumps(items))
-
-    print(parsed)
-
+    print('Done. File cleaned.')
 
 def do_catch(**parsed):
     region_options = bottlenose.api.SERVICE_DOMAINS.keys()
@@ -281,11 +280,12 @@ def do_inspect(**parsed):
         srv_url = 'http://{}:{}'.format(parsed['ip'], parsed['port'])
         parsed['srv'].start()
         print('Server running at {}'.format(srv_url))
-        webbrowser.open_new_tab('http://{}:{}/{}?data={}'.format(
+        webbrowser.open_new_tab('http://{}:{}/{}?data={}&file={}'.format(
             parsed['ip'],
             parsed['port'],
             '{}/voon_webview/index.html'.format(current_dir),
-            '{}/{}'.format(srv_url, parsed['file'])
+            '{}/{}'.format(srv_url, parsed['file']),
+            parsed['file']
         ))
         parsed['srv'].join()
 
