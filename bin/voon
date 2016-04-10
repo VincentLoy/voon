@@ -3,6 +3,7 @@
 #
 # (c) 2016 Vincent Loy
 import argparse
+import base64
 import socketserver
 import threading
 import webbrowser
@@ -215,12 +216,11 @@ class VoonServerThread(threading.Thread):
         self.httpd = None
 
     def run(self):
-        os.chdir(os.path.abspath('{}/webview'.format(os.path.dirname(__file__))))
+        os.chdir(os.path.abspath('/'))
         server_address = (self.ip, self.port)
         handler = SimpleHTTPRequestHandler
         socketserver.TCPServer.allow_reuse_address = True
         self.httpd = socketserver.TCPServer(server_address, handler)
-        print(self.httpd.server_address)
         self.httpd.serve_forever()
 
 
@@ -246,15 +246,17 @@ def do_catch(**parsed):
 
 def do_inspect(**parsed):
     try:
+        current_dir = os.getcwd() # Warning, the server will start at '/'
+        srv_url = 'http://{}:{}'.format(parsed['ip'], parsed['port'])
         parsed['srv'].start()
-        print('Server running at http://{}:{}'.format(parsed['ip'], parsed['port']))
-        webbrowser.open_new_tab('http://{}:{}?data={}'.format(
+        print('Server running at {}'.format(srv_url))
+        webbrowser.open_new_tab('http://{}:{}/{}?data={}'.format(
             parsed['ip'],
             parsed['port'],
-            parsed['file']
+            '{}/voon_webview/index.html'.format(current_dir),
+            '{}/{}'.format(srv_url, parsed['file'])
         ))
         parsed['srv'].join()
-        print('ok')
 
     except KeyboardInterrupt:
         print('\nClosing webserver... please wait.')

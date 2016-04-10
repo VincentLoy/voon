@@ -1,3 +1,4 @@
 .idea
 *.pyc
 voon_*.json
+node_modules
