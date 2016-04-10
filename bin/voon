@@ -138,6 +138,23 @@ def parse_cli():
     p = argparse.ArgumentParser(description='Voon is a tool to create Amazon products JSON files')
     s = p.add_subparsers(help='Action', dest='action')
 
+    # cleanup
+    arg_cleanup = s.add_parser('cleanup', help='Clean unwanted items from a given json file')
+
+    arg_cleanup.add_argument(
+        'file',
+        type=str,
+        nargs='?',
+        help='The absolute path of the file that you want to clean'
+    )
+
+    arg_cleanup.add_argument(
+        '--ids',
+        type=int,
+        nargs='+',
+        help='Amazon region. Can be'
+    )
+
     # inspect
     arg_inspect = s.add_parser('inspect', help='Inpect a given file in a webview to sort it more easly')
 
@@ -222,6 +239,20 @@ class VoonServerThread(threading.Thread):
         socketserver.TCPServer.allow_reuse_address = True
         self.httpd = socketserver.TCPServer(server_address, handler)
         self.httpd.serve_forever()
+
+
+def do_cleanup(**parsed):
+    with codecs.open(parsed['file'], 'r') as f:
+        items = json.load(f)
+
+    for item in items:
+        if item['voon_id'] in parsed['ids']:
+            items.remove(item)
+
+    with codecs.open(parsed['file'], 'w') as f:
+        f.write(json.dumps(items))
+
+    print(parsed)
 
 
 def do_catch(**parsed):
