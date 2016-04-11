@@ -49,10 +49,9 @@ class Voon(object):
     def __init__(self, args):
         self.args = args
         self.assoc_tag = getenv('AMAZON_ASSOC_TAG') if getenv('AMAZON_ASSOC_TAG') else ''
-
         self.data = []
 
-    def init_amazon_api(self):
+    def _init_amazon_api(self):
         self.amazon = AmazonAPI(
             getenv('AMAZON_ACCESS_KEY'),
             getenv('AMAZON_SECRET_KEY'),
@@ -60,16 +59,12 @@ class Voon(object):
             region=self.args['region'],
         )
 
-    def create_file(self):
-        custom_slugify = Slugify(to_lower=True)
-        custom_slugify.separator = '_'
+    def _chunks(self, l, n):
+        for i in range(0, len(l), n):
+            yield l[i:i+n]
 
-        fname = '{}_{}.json'.format(
-            self.args['prefix'].lower(),
-            custom_slugify(self.args['query'])
-        )
-
-        with codecs.open(fname, 'w', encoding='utf8') as f:
+    def _create_file(self, file_name):
+        with codecs.open(file_name, 'w', encoding='utf8') as f:
             f.write(json.dumps(
                 self.data,
                 ensure_ascii=False,
@@ -84,19 +79,15 @@ class Voon(object):
             'url': str(image['URL']),
         }
 
-    def catch(self):
-        self.init_amazon_api()
+    def _get_asin_list(self, items):
+        for item in items:
+            yield item['asin']
 
-        if self.args['limit']:
-            result = self.amazon.search_n(
-                self.args['limit'],
-                Keywords=self.args['query'],
-                SearchIndex=self.args['category']
-            )
-        else:
-            result = self.amazon.search(Keywords=self.args['query'], SearchIndex=self.args['category'])
-
-        for i, product in enumerate(result):
+    def _build_result(self, query_result):
+        """
+        Yet try to build a clean dictionnary, still may having some errors
+        """
+        for i, product in enumerate(query_result):
             res = {
                 'images': []
             }
@@ -127,7 +118,56 @@ class Voon(object):
             res['voon_id'] = i + 1
             self.data.append(res)
 
-        self.create_file()
+    def cleanup(self):
+        with codecs.open(self.args['file'], 'r') as f:
+            items = json.load(f)
+
+        for item in items:
+            if item['voon_id'] in self.args['ids']:
+                print('remove : {}'.format(item['title']))
+                items.remove(item)
+
+        self.data = items
+        self._create_file(self.args['file'])
+        print('Done. File cleaned.')
+
+    def update(self):
+        self._init_amazon_api()
+        real_result = []
+
+        with codecs.open(self.args['file'], 'r') as f:
+            aisn_list = list(self._get_asin_list(json.loads(f.read())))
+            splitted_aisn = list(self._chunks(aisn_list, 10))
+
+        for l in splitted_aisn:
+            result = self.amazon.lookup(ItemId=','.join(l))
+            real_result += result
+
+        self._build_result(real_result)
+        self._create_file(self.args['file'])
+
+    def catch(self):
+        self._init_amazon_api()
+
+        if self.args['limit']:
+            result = self.amazon.search_n(
+                self.args['limit'],
+                Keywords=self.args['query'],
+                SearchIndex=self.args['category']
+            )
+        else:
+            result = self.amazon.search(Keywords=self.args['query'], SearchIndex=self.args['category'])
+
+        self._build_result(result)
+
+        custom_slugify = Slugify(to_lower=True)
+        custom_slugify.separator = '_'
+
+        fname = '{}_{}.json'.format(
+            self.args['prefix'].lower(),
+            custom_slugify(self.args['query'])
+        )
+        self._create_file(fname)
 
 
 class VoonException(Exception):
@@ -137,6 +177,25 @@ class VoonException(Exception):
 def parse_cli():
     p = argparse.ArgumentParser(description='Voon is a tool to create Amazon products JSON files')
     s = p.add_subparsers(help='Action', dest='action')
+
+    # update
+    arg_update = s.add_parser('update', help='Update items in a Voon json file')
+
+    arg_update.add_argument(
+        'file',
+        type=str,
+        nargs='?',
+        help='The absolute path of the file that you want to update'
+    )
+
+    arg_update.add_argument(
+        '--region',
+        type=str,
+        default='US',
+        nargs='?',
+        help='Amazon region'
+    )
+
 
     # cleanup
     arg_cleanup = s.add_parser('cleanup', help='Clean unwanted items from a given json file')
@@ -173,7 +232,7 @@ def parse_cli():
         type=str,
         default='US',
         nargs='?',
-        help='Amazon region. Can be'
+        help='Amazon region'
     )
 
     arg_catch.add_argument(
@@ -242,17 +301,14 @@ class VoonServerThread(threading.Thread):
 
 
 def do_cleanup(**parsed):
-    with codecs.open(parsed['file'], 'r') as f:
-        items = json.load(f)
+    voon = Voon(parsed)
+    voon.cleanup()
 
-    for item in items:
-        if item['voon_id'] in parsed['ids']:
-            print('remove : {}'.format(item['title']))
-            items.remove(item)
 
-    with codecs.open(parsed['file'], 'w') as f:
-        f.write(json.dumps(items))
-    print('Done. File cleaned.')
+def do_update(**parsed):
+    voon = Voon(parsed)
+    voon.update()
+
 
 def do_catch(**parsed):
     region_options = bottlenose.api.SERVICE_DOMAINS.keys()
