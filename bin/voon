@@ -128,7 +128,6 @@ class Voon(object):
             if item['voon_id'] not in self.args['ids']:
                 removed -= 1
                 self.data.append(item)
-                # items.remove(item)
 
         self._create_file(self.args['file'])
         print('Done. File cleaned. {} item(s) removed.'.format(removed))
