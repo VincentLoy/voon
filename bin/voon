@@ -122,14 +122,16 @@ class Voon(object):
         with codecs.open(self.args['file'], 'r') as f:
             items = json.load(f)
 
-        for item in items:
-            if item['voon_id'] in self.args['ids']:
-                print('remove : {}'.format(item['title']))
-                items.remove(item)
+        removed = len(items)
 
-        self.data = items
+        for item in items:
+            if item['voon_id'] not in self.args['ids']:
+                removed -= 1
+                self.data.append(item)
+                # items.remove(item)
+
         self._create_file(self.args['file'])
-        print('Done. File cleaned.')
+        print('Done. File cleaned. {} item(s) removed.'.format(removed))
 
     def update(self):
         self._init_amazon_api()
