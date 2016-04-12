@@ -9,7 +9,9 @@
 </head>
 <body id="voon-app">
 <header>
-    <h1 class="text-center">Voon File Inspector</h1>
+    <div class="container">
+        <h1 class="text-center">Voon File Inspector</h1>
+    </div>
 </header>
 
 <div class="details_container"
@@ -31,7 +33,7 @@
         <div class="editorial_review" v-for="editorial_review in selectedItem.editorial_reviews">
             <div v-html="editorial_review"></div>
         </div>
-    </div>
+</div>
 </div>
 
 <div class="container">
@@ -56,6 +58,10 @@
                 Remaining items
             </li>
         </ul>
+
+        <button type="button"
+                v-on:click="selectBadSalesRank()"
+                class="btn btn-danger">Select bad sales ranks</button>
     </div>
 
     <div v-if="data" data-test="{{ data }}">
@@ -89,10 +95,10 @@
                     <td>{{ item.price_and_currency[0] }} {{ item.price_and_currency[1] }}</td>
                 </tr>
                 <tr v-bind:class="{
-                'success' : 50 > item.sales_rank,
-                'info' : item.sales_rank >= 50 && item.sales_rank < 500,
-                'warning' : item.sales_rank >= 500 && item.sales_rank < 15000,
-                'danger' : item.sales_rank >= 15000
+                'success' : salesRankLimit.min > item.sales_rank,
+                'info' : item.sales_rank >= salesRankLimit.min && item.sales_rank < salesRankLimit.medium,
+                'warning' : item.sales_rank >= salesRankLimit.medium && item.sales_rank < salesRankLimit.max,
+                'danger' : item.sales_rank >= salesRankLimit.max
                 }">
                     <td>Sales Rank</td>
                     <td>{{ item.sales_rank }}</td>

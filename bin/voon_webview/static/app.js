@@ -7,6 +7,11 @@
         getQuery,
         dataGetQuery,
     // vars
+        SALES_RANK_LIMIT = {
+            min: 50,
+            medium: 500,
+            max: 15000
+        },
         jsonData,
         app,
         request = new XMLHttpRequest();
@@ -46,7 +51,8 @@
                 selectedImage: null,
                 selectedImageIndex: 0,
                 selectedItem: null,
-                dataToRemove: []
+                dataToRemove: [],
+                salesRankLimit: SALES_RANK_LIMIT
             },
             computed: {
                 command: function () {
@@ -71,13 +77,24 @@
                         this.dataToRemove.push(voon_id);
                     }
                 },
+                addToRemove: function (voon_id) {
+                    var index = this.dataToRemove.indexOf(voon_id);
+                    if (index === -1) {
+                        this.dataToRemove.push(voon_id);
+                    }
+                },
+                cancelToRemove: function (voon_id) {
+                    var index = this.dataToRemove.indexOf(voon_id);
+                    if (index > -1) {
+                        this.dataToRemove.splice(index, 1);
+                    }
+                },
                 voonIdInside: function (id) {
                     return this.dataToRemove.indexOf(id) > -1;
                 },
                 selectItem: function (item) {
                     this.selectedItem = item;
                     this.selectedImage = this.selectedItem.images[0].large_image.url;
-
                 },
                 unselectItem: function (event) {
                     event.stopPropagation();
@@ -86,8 +103,18 @@
                 selectImage: function (index) {
                     this.selectedImageIndex = index;
                     this.selectedImage = this.selectedItem.images[index].large_image.url;
+                },
+                selectBadSalesRank: function () {
+                    var self = this;
+
+                    self.data.forEach(function (item) {
+                        console.log(item);
+                        if (item.sales_rank >= SALES_RANK_LIMIT.max) {
+                            self.addToRemove(item.voon_id);
+                        }
+                    });
                 }
             }
         });
-    }, 0)
+    }, 250);
 }());
