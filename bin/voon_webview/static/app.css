@@ -178,3 +178,77 @@ body {
     display: block;
     margin: auto;
 }
+
+.item_thumb_preview {
+    height: 75px;
+}
+
+.chip {
+    font-weight: bold;
+    color: white;
+}
+
+.voon-success {
+    background: #2ecc71;
+}
+
+.voon-info {
+    background: #3498db;
+}
+
+.voon-warning {
+    background: #f39c12;
+}
+
+.voon-danger {
+    background: #e74c3c;
+}
+
+.actions a {
+    display: inline-block;
+}
+
+/* modal stuff */
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.selected-item-rank p {
+    margin: 0;
+    padding: 0;
+    display: block;
+}
+
+.selected-item-rank {
+    font-weight: bold;
+    color: white;
+    font-size: 20px;
+    width: 75px;
+    height: 75px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 2px;
+}
+
+.selected-image {
+    height: 300px;
+    display: block;
+    margin: auto;
+}
+
+.images-chooser li {
+    display: inline-block;
+    margin: 5px 10px;
+}
+
+.thumbnail-image-modal {
+    cursor: pointer;
+    transition: 0.2s ease all;
+}
+
+.thumbnail-image-modal.selected {
+    opacity: 0.25;
+}

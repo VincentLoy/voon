@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Voon File Inspector</title>
-    <link rel="stylesheet" href="https://bootswatch.com/flatly/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.6/css/materialize.min.css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="static/app.css">
 </head>
@@ -14,28 +14,6 @@
     </div>
 </header>
 
-<div class="details_container"
-     v-on:click="unselectItem($event)"
-     v-bind:class="{'show': selectedItem !== null }">
-    <ul class="details_modal">
-        <h3>{{ selectedItem.title }}</h3>
-        <img class="details_main_img" src="{{ selectedImage }}" alt="">
-
-        <ul class="img_list">
-            <li v-for="img in selectedItem.images">
-                <img src="{{ img.thumbnail_image.url }}"
-                     v-bind:class="{'selected': selectedImageIndex === $index }"
-                     v-on:click="selectImage($index)"
-                     alt="">
-            </li>
-        </ul>
-
-        <div class="editorial_review" v-for="editorial_review in selectedItem.editorial_reviews">
-            <div v-html="editorial_review"></div>
-        </div>
-</div>
-</div>
-
 <div class="container">
     <div v-if="!data" class="alert alert-dismissible alert-warning">
         <h4><strong>data GET parameter not found!</strong></h4>
@@ -43,83 +21,107 @@
         <p>You must provide a GET parameter called 'data' with voon json file absolute path</p>
     </div>
 
-    <div class="aside">
-        <ul class="list-group">
-            <li class="list-group-item">
-                <span class="badge">{{ totalItems }}</span>
-                Total items
-            </li>
-            <li class="list-group-item">
-                <span class="badge">{{ totalItemsSlected }}</span>
-                Items selected
-            </li>
-            <li class="list-group-item">
-                <span class="badge">{{ remainingItems }}</span>
-                Remaining items
-            </li>
-        </ul>
+    <div id="modal1" class="modal modal-fixed-footer">
+        <div class="modal-content" v-if="selectedItem">
+            <div class="modal-header">
+                <div class="modal-left">
+                    <h4>{{ selectedItem.brand }} - {{ selectedItem.model }}</h4>
+                    <p><strong>{{ selectedItem.title }}</strong></p>
+                </div>
 
-        <button type="button"
-                v-on:click="selectBadSalesRank()"
-                class="btn btn-danger">Select bad sales ranks</button>
-    </div>
-
-    <div v-if="data" data-test="{{ data }}">
-        <div v-for="item in data" class="col-xs-12 col-md-6">
-            <div class="item_image" style="background-image: url({{ item.large_image_url }})">
-                <div class="item_image_overlay" v-bind:class="{'selected': voonIdInside(item.voon_id)}">
-
-                    <a class="item_add_btn"
-                       v-on:click="toggleRemove(item.voon_id)">
-                        <i class="fa"
-                           v-bind:class="{'fa-plus': voonIdInside(item.voon_id), 'fa-plus-circle': !voonIdInside(item.voon_id)}">
-                        </i>
-                    </a>
-
-                    <a class="item_details_btn" v-on:click="selectItem(item)">
-                        See more details <i class="fa fa-eye"></i>
-                    </a>
+                <div class="modal-right">
+                    <div class="selected-item-rank"
+                       v-bind:class="{
+                        'voon-success' : salesRankLimit.min > selectedItem.sales_rank,
+                        'voon-info' : selectedItem.sales_rank >= salesRankLimit.min && selectedItem.sales_rank < salesRankLimit.medium,
+                        'voon-warning' : selectedItem.sales_rank >= salesRankLimit.medium && selectedItem.sales_rank < salesRankLimit.max,
+                        'voon-danger' : selectedItem.sales_rank >= salesRankLimit.max
+                        }">
+                        <p>{{ selectedItem.sales_rank }}</p>
+                    </div>
                 </div>
             </div>
-            <div class="item_title_container">
-                <h4>{{ item.title }}</h4>
+            <hr>
+            <div class="image-container">
+                <img v-bind:src="selectedImage" class="selected-image" alt="">
+                <ul class="images-chooser">
+                    <li v-for="image in selectedItem.images">
+                        <img class="thumbnail-image-modal"
+                             v-bind:class="{'selected': $index === selectedImageIndex }"
+                             v-on:click="selectImage($index)"
+                             src=""
+                             v-bind:src="image.thumbnail_image.url">
+                    </li>
+                </ul>
             </div>
-            <table class="table table-striped table-hover ">
-                <tbody>
-                <tr class="info">
-                    <td>Brand</td>
-                    <td>{{ item.brand }}</td>
-                </tr>
-                <tr>
-                    <td>Price</td>
-                    <td>{{ item.price_and_currency[0] }} {{ item.price_and_currency[1] }}</td>
-                </tr>
-                <tr v-bind:class="{
-                'success' : salesRankLimit.min > item.sales_rank,
-                'info' : item.sales_rank >= salesRankLimit.min && item.sales_rank < salesRankLimit.medium,
-                'warning' : item.sales_rank >= salesRankLimit.medium && item.sales_rank < salesRankLimit.max,
-                'danger' : item.sales_rank >= salesRankLimit.max
-                }">
-                    <td>Sales Rank</td>
-                    <td>{{ item.sales_rank }}</td>
-                </tr>
-                <tr>
-                    <td>Model</td>
-                    <td>{{ item.model }}</td>
-                </tr>
-                <tr>
-                    <td>Color</td>
-                    <td>{{ item.color }}</td>
-                </tr>
-                </tbody>
-            </table>
+            
+            <div>{{{ selectedItem.editorial_review }}}</div>
         </div>
+        <div class="modal-footer">
+            <a href="#!" class="modal-action modal-close waves-effect waves-green btn-flat ">
+                close
+            </a>
+        </div>
+    </div>
+
+    <div v-if="data" data-test="{{ data }}" class="row">
+        <table class="striped">
+            <thead>
+            <tr>
+                <th data-field="id">Thumbnail</th>
+                <th data-field="id">Brand/title</th>
+                <th data-field="name">model</th>
+                <th data-field="price">Sales rank</th>
+                <th data-field="price">price</th>
+                <th data-field="price">actions</th>
+            </tr>
+            </thead>
+
+            <tbody>
+            <tr v-for="item in data">
+                <td>
+                    <a href="#modal1"
+                       v-on:click="selectItem(item)"
+                       class="modal-trigger">
+                        <img class="item_thumb_preview"
+                             v-if="item.medium_image_url"
+                            v-bind:src="item.medium_image_url"
+                            alt="">
+                        <img class="item_thumb_preview"
+                             v-else
+                            v-bind:src="item.large_image_url"
+                            alt="">
+                    </a>
+                </td>
+                <td v-if="item.brand">{{ item.brand }}</td>
+                <td v-else>{{ item.title }}</td>
+                <td>{{ item.model }}</td>
+                <td>
+                    <p class="chip" v-bind:class="{
+                        'voon-success' : salesRankLimit.min > item.sales_rank,
+                        'voon-info' : item.sales_rank >= salesRankLimit.min && item.sales_rank < salesRankLimit.medium,
+                        'voon-warning' : item.sales_rank >= salesRankLimit.medium && item.sales_rank < salesRankLimit.max,
+                        'voon-danger' : item.sales_rank >= salesRankLimit.max
+                        }">
+                        {{ item.sales_rank }}
+                    </p>
+                </td>
+                <td>{{ item.price_and_currency[0] }} {{ item.price_and_currency[1] }}</td>
+                <td class="actions">
+                    <a href v-bind:href="item.reviews[1]" target="_blank" class="btn modal-trigger">tralala</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
     </div>
 
     <div class="command_container" v-bind:class="{ 'show': dataToRemove.length > 0 }">
         <input type="text" v-model="command" disabled>
     </div>
 </div>
+<script src="https://code.jquery.com/jquery-2.2.3.min.js"
+        integrity="sha256-a23g1Nt4dtEYOj7bR+vTu7+T8VP13humZFBJNIYoEJo=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.6/js/materialize.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/1.0.21/vue.min.js"></script>
 <script src="static/app.js"></script>
 </body>

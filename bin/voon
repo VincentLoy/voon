@@ -3,7 +3,6 @@
 #
 # (c) 2016 Vincent Loy
 import argparse
-import base64
 import socketserver
 import threading
 import webbrowser
@@ -12,10 +11,8 @@ from http.server import SimpleHTTPRequestHandler
 import codecs
 import sys
 import bottlenose
-from urllib.request import pathname2url  # Python 3.x
 import os
 import json
-from multiprocessing import Process
 from os import getenv
 
 from lxml.objectify import StringElement
