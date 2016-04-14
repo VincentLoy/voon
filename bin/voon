@@ -3,6 +3,7 @@
 #
 # (c) 2016 Vincent Loy
 import argparse
+import datetime
 import socketserver
 import threading
 import webbrowser
@@ -93,6 +94,12 @@ class Voon(object):
                     res[prop] = str(getattr(product, prop))
                 else:
                     res[prop] = getattr(product, prop)
+
+            # Todo : remove this ugly hack
+            res['reviews'] = (True, res['reviews'][1].replace('exp=2016', 'exp={}'.format(
+                datetime.datetime.now().year + 5
+            )))
+            print(res['reviews'][1])
 
             for img in product.images:
                 res['images'].append({
