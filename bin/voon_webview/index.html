@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Voon File Inspector</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.6/css/materialize.min.css">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+      <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link rel="stylesheet" href="static/app.css">
 </head>
 <body id="voon-app">
@@ -108,11 +108,56 @@
                 </td>
                 <td>{{ item.price_and_currency[0] }} {{ item.price_and_currency[1] }}</td>
                 <td class="actions">
-                    <a href v-bind:href="item.reviews[1]" target="_blank" class="btn modal-trigger">tralala</a>
+                    <div class="fixed-action-btn horizontal">
+                        <a v-on:click="toggleRemove(item.voon_id)"
+                           v-bind:class="{
+                           'green': !voonIdInside(item.voon_id),
+                           'red': voonIdInside(item.voon_id)
+                           }"
+                           class="btn-floating btn-large">
+                            <i class="large material-icons" v-if="!voonIdInside(item.voon_id)">add</i>
+                            <i class="large material-icons" v-if="voonIdInside(item.voon_id)">clear</i>
+                        </a>
+                        <ul>
+                            <li><a href v-bind:href="item.reviews[1]"
+                                   target="_blank"
+                                   class="btn-floating blue">
+                                <i class="material-icons">comment</i>
+                            </a>
+                            </li>
+                            <li>
+                                <a href="#modal1"
+                                   v-on:click="selectItem(item)"
+                                   class="btn-floating yellow darken-2 modal-trigger">
+                                    <i class="material-icons">info</i>
+                                </a>
+                            </li>
+                            <li>
+                                <a v-bind:href="item.offer_url"
+                                   target="_blank"
+                                   class="btn-floating green">
+                                    <i class="material-icons">open_in_new</i>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                 </td>
             </tr>
             </tbody>
         </table>
+    </div>
+
+    <div class="fixed-action-btn" style="bottom: 80px; right: 24px;">
+        <a class="btn-floating btn-large red">
+            <i class="large material-icons">mode_edit</i>
+        </a>
+        <ul>
+            <li>
+                <a v-on:click="selectBadSalesRank()" class="btn-floating red">
+                    <i class="material-icons">playlist_add</i>
+                </a>
+            </li>
+        </ul>
     </div>
 
     <div class="command_container" v-bind:class="{ 'show': dataToRemove.length > 0 }">

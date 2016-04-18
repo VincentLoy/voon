@@ -99,6 +99,7 @@ body {
     width: 100%;
     height: 75px;
     transition: 0.3s ease all;
+    z-index: 999;
 }
 
 .command_container.show {
@@ -110,9 +111,9 @@ body {
     background: black;
     width: 100%;
     height: 100%;
-    padding: 15px;
+    padding: 0 15px 0 15px;
     font-family: monospace;
-    color: white;
+    color: white !important;
     font-weight: bold;
 }
 
@@ -141,8 +142,21 @@ body {
     background: #e74c3c;
 }
 
+.actions {
+    position: relative;
+    vertical-align: middle;
+    margin: auto;
+}
+
+.actions .fixed-action-btn {
+    /*top: 30px;*/
+    /*right: 20px !important;*/
+    margin: auto;
+    position: absolute !important;
+}
+
 .actions a {
-    display: inline-block;
+    /*display: inline-block;*/
 }
 
 /* modal stuff */

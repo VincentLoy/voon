@@ -99,7 +99,6 @@ class Voon(object):
             res['reviews'] = (True, res['reviews'][1].replace('exp=2016', 'exp={}'.format(
                 datetime.datetime.now().year + 5
             )))
-            print(res['reviews'][1])
 
             for img in product.images:
                 res['images'].append({
