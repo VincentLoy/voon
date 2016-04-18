@@ -84,6 +84,11 @@
                             this.dataToRemove.push(voon_id);
                         }
                     },
+                    toggleRowOpacity: function (index) {
+                        var $el = $('#voon-element-' + index);
+                        $el.toggleClass('voon-row-hidden');
+
+                    },
                     cancelToRemove: function (voon_id) {
                         var index = this.dataToRemove.indexOf(voon_id);
                         if (index > -1) {

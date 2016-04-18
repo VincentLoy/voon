@@ -142,6 +142,15 @@ body {
     background: #e74c3c;
 }
 
+.voon-row td {
+    opacity: 1;
+    transition: 0.3s ease all;
+}
+
+.voon-row-hidden td:not(.keep-visible) {
+    opacity: 0.25;
+}
+
 .actions {
     position: relative;
     vertical-align: middle;

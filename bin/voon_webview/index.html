@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Voon File Inspector</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.6/css/materialize.min.css">
-      <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link rel="stylesheet" href="static/app.css">
 </head>
 <body id="voon-app">
@@ -26,12 +26,13 @@
             <div class="modal-header">
                 <div class="modal-left">
                     <h4>{{ selectedItem.brand }} - {{ selectedItem.model }}</h4>
+
                     <p><strong>{{ selectedItem.title }}</strong></p>
                 </div>
 
                 <div class="modal-right">
                     <div class="selected-item-rank"
-                       v-bind:class="{
+                         v-bind:class="{
                         'voon-success' : salesRankLimit.min > selectedItem.sales_rank,
                         'voon-info' : selectedItem.sales_rank >= salesRankLimit.min && selectedItem.sales_rank < salesRankLimit.medium,
                         'voon-warning' : selectedItem.sales_rank >= salesRankLimit.medium && selectedItem.sales_rank < salesRankLimit.max,
@@ -54,7 +55,7 @@
                     </li>
                 </ul>
             </div>
-            
+
             <div>{{{ selectedItem.editorial_review }}}</div>
         </div>
         <div class="modal-footer">
@@ -78,19 +79,19 @@
             </thead>
 
             <tbody>
-            <tr v-for="item in data">
+            <tr v-for="item in data" class="voon-row" id="voon-element-{{ $index }}">
                 <td>
                     <a href="#modal1"
                        v-on:click="selectItem(item)"
                        class="modal-trigger">
                         <img class="item_thumb_preview"
                              v-if="item.medium_image_url"
-                            v-bind:src="item.medium_image_url"
-                            alt="">
+                             v-bind:src="item.medium_image_url"
+                             alt="">
                         <img class="item_thumb_preview"
                              v-else
-                            v-bind:src="item.large_image_url"
-                            alt="">
+                             v-bind:src="item.large_image_url"
+                             alt="">
                     </a>
                 </td>
                 <td v-if="item.brand">{{ item.brand }}</td>
@@ -107,36 +108,39 @@
                     </p>
                 </td>
                 <td>{{ item.price_and_currency[0] }} {{ item.price_and_currency[1] }}</td>
-                <td class="actions">
-                    <div class="fixed-action-btn horizontal">
+                <td class="actions keep-visible">
+                    <div v-on:mouseenter="toggleRowOpacity($index)"
+                         v-on:mouseleave="toggleRowOpacity($index)"
+                         class="fixed-action-btn horizontal keep-opacity">
                         <a v-on:click="toggleRemove(item.voon_id)"
                            v-bind:class="{
-                           'green': !voonIdInside(item.voon_id),
-                           'red': voonIdInside(item.voon_id)
-                           }"
+                               'green': !voonIdInside(item.voon_id),
+                               'red': voonIdInside(item.voon_id)
+                               }"
                            class="btn-floating btn-large">
                             <i class="large material-icons" v-if="!voonIdInside(item.voon_id)">add</i>
                             <i class="large material-icons" v-if="voonIdInside(item.voon_id)">clear</i>
                         </a>
                         <ul>
-                            <li><a href v-bind:href="item.reviews[1]"
+                            <li>
+                                <a href v-bind:href="item.reviews[1]"
                                    target="_blank"
                                    class="btn-floating blue">
-                                <i class="material-icons">comment</i>
-                            </a>
+                                    <i class="tiny material-icons">comment</i>
+                                </a>
                             </li>
                             <li>
                                 <a href="#modal1"
                                    v-on:click="selectItem(item)"
                                    class="btn-floating yellow darken-2 modal-trigger">
-                                    <i class="material-icons">info</i>
+                                    <i class="tiny material-icons">info</i>
                                 </a>
                             </li>
                             <li>
                                 <a v-bind:href="item.offer_url"
                                    target="_blank"
                                    class="btn-floating green">
-                                    <i class="material-icons">open_in_new</i>
+                                    <i class="tiny material-icons">open_in_new</i>
                                 </a>
                             </li>
                         </ul>
